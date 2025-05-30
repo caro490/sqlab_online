@@ -40,47 +40,19 @@
   background-color: var(--color-light-blue);
   width: 100%;
   box-sizing: border-box;
-  padding-left: var(--spacing-md);
+  padding: 0 var(--spacing-md);
+  cursor: move;
 }
-
 
 /* ===== Table Name ===== */
 .table-name {
+  cursor: pointer;
   font-weight: var(--font-weight-bold);
   color: var(--color-primary);
   padding: var(--spacing-sm) 0;
   white-space: nowrap;
   flex-shrink: 0;
-  font-size: var(--font-size-sm)
-}
-
-/* ===== Drag Handle ===== */
-.drag-handle {
-  flex-shrink: 0;
-  margin-right: 12px;
-  user-select: none;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-}
-
-.drag-handle::after {
-  content: '⠿';
-  font-size: 20px;
-  color: rgba(0, 0, 0, 0.4);
-  transition: color var(--transition-fast);
-}
-
-.accordion-item.is-idle .drag-handle {
-  cursor: move;
-}
-
-.accordion-item.is-idle .drag-handle:hover::after {
-  color: rgba(0, 0, 0, 0.6);
-}
-
-.accordion-item.is-draggable .drag-handle {
-  cursor: move;
+  font-size: var(--font-size-sm);
 }
 
 /* ===== Collapsible Content ===== */
@@ -103,7 +75,6 @@
   width: auto;
   height: 100%;
   padding: 4px 10px;
-  cursor: pointer;
   display: flex;
   align-items: center;
   gap: 14px;
@@ -121,15 +92,12 @@
   max-width: 100%;
   gap: var(--spacing-xs, 4px);
   overflow-x: auto;
-  scrollbar-width: none;
-  /* Firefox */
-  -ms-overflow-style: none;
-  /* IE/Edge */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
 }
 
 .columns-buttons::-webkit-scrollbar {
-  display: none;
-  /* Chrome/Safari/Opera */
+  display: none; /* Chrome/Safari/Opera */
 }
 
 .column-name-btn {
@@ -164,19 +132,25 @@
 /* ===== Dark Theme Support ===== */
 .dark-theme .accordion-item {
   border-color: #444;
-  background-color: var(--dark-bg, #2a2a2a);
+  background-color: var(--dark-element);
 }
 
 .dark-theme .table-outline {
   background-color: var(--dark-primary);
   color: var(--dark-text);
-  border-bottom-color: #444;
+}
+
+.dark-theme .outline-click-zone {
+  background-color: var(--dark-primary);
 }
 
 .dark-theme .table-name {
   color: var(--dark-text);
-  background-color: rgba(0, 0, 0, 0.2);
-  border-color: var(--dark-light);
+}
+
+.dark-theme .column-name-btn {
+  background-color: var(--dark-element);
+  color: var(--dark-text);
 }
 
 .dark-theme .no-columns {
