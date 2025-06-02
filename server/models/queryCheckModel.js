@@ -1,16 +1,22 @@
 import { runSqlStatement } from "../services/databaseService.js";
 import { queryMetadata } from './metadataModel.js';
-import { injectPlaceholderColumn, calculateFirstPassFormula, calculateSecondPassFormula } from "../utils/sqlAst.js";
+import {
+    injectPlaceholderColumn,
+    calculateFirstPassFormula,
+    calculateSecondPassFormula,
+    parseSqlToAst,
+    isSafeForEvaluation,
+    asciiMapper,
+} from "../utils/sqlAst.js";
 import { decryptToken } from "./decryptionModel.js";
-import { parseSqlToAst, isSafeForEvaluation, asciiMapper } from "../utils/sqlAst.js";
-import { globalState } from '../server.js';
+import { userData } from '../server.js';
 import { MIN_STAKE_PERCENTAGE, MAX_STAKE_PERCENTAGE } from "../../public/utils/constants.js";
 
 export async function checkQuery(query, activityNumber, taskNumber, stakePercentage) {
     let resultData = {
         success: false,
         message: null,
-        score: globalState.score,
+        score: userData.score,
         scoreDelta: 0
     };
 
@@ -25,7 +31,7 @@ export async function checkQuery(query, activityNumber, taskNumber, stakePercent
         if (stakePercentage < MIN_STAKE_PERCENTAGE || stakePercentage > MAX_STAKE_PERCENTAGE) {
             throw new Error("stakePercentageError");
         };
-        const stakeAmount = Math.floor(globalState.score * stakePercentage / 100)
+        const stakeAmount = Math.floor(userData.score * stakePercentage / 100)
 
         const activities = await queryMetadata("activities");
         const task = activities[activityNumber].tasks[taskNumber - 1];
@@ -37,7 +43,7 @@ export async function checkQuery(query, activityNumber, taskNumber, stakePercent
         const expectedSet = new Set(task.columns);
         const userSet = new Set(userCols);
         const columnsMatch = expectedSet.size === userSet.size && [...expectedSet].every(col => userSet.has(col));
-        
+
         if (!columnsMatch) {
             console.log(`User columns: ${userCols}, Expected columns: ${task.columns}`);
             resultData.message = "wrongColumnsError";
@@ -61,6 +67,9 @@ export async function checkQuery(query, activityNumber, taskNumber, stakePercent
                 const func = new Function('result', 'query', `return (${tweakExpression});`);
                 tweakValue = func(result, query);
             } catch (error) {
+                console.error(`tweakEvaluationError: ${error.message}`);
+                console.error(`query: ${query}`);
+                console.error(`tweakExpression: ${tweakExpression}\n`);
                 throw new Error("tweakEvaluationError");
             }
 
@@ -75,14 +84,17 @@ export async function checkQuery(query, activityNumber, taskNumber, stakePercent
 
         if (data.feedback.startsWith("<div class='hint'>")) {
             resultData.scoreDelta = -stakeAmount;
+        } else if (data.feedback.startsWith("<div class='unknown-token'>")) {
+            resultData.scoreDelta = -stakeAmount;
         } else if (data.feedback.startsWith("<div class='correction'>")) {
             resultData.scoreDelta = task.reward + stakeAmount;
         } else {
-            console.warn(`Feedback for token ${token} does not start with a hint or correction.`);
-            resultData.scoreDelta = 0;
+            console.warn(`Malformed feedback for token ${token}.`);
+            console.warn(`Feedback: ${data.feedback}\n`);
+            resultData.scoreDelta = -stakeAmount;
         };
-        globalState.score += resultData.scoreDelta;
-        resultData.score = globalState.score;
+        userData.score += resultData.scoreDelta;
+        resultData.score = userData.score;
         resultData.success = true;
         resultData.feedback = data.feedback;
         resultData.task = data.task;
@@ -101,6 +113,8 @@ async function executeQueryWithFormula(passNumber, formula, queryTemplate) {
         if (result.length === 0) throw new Error("emptyResultError");
         return result;
     } catch (error) {
+        console.error(`Error executing ${passNumber} pass query:`, error);
+        console.error(`Query: ${query}\n`);
         throw new Error(`${passNumber}PassExecutionError`);
     }
 };

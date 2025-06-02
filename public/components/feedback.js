@@ -27,7 +27,6 @@ export async function getAndRenderFeedback(refresh = true) {
     // If the refresh flag is not set, return.
     if (!refresh) {
         feedbackTextContainer.classList.add('hidden');
-        document.querySelector('.tab[data-tab="core-tables-tab"]').click();
         return
     }
 
@@ -45,13 +44,6 @@ export async function getAndRenderFeedback(refresh = true) {
     try {
 
         const data = await checkQuery(query, activityNumber, taskNumber, stakePercentage);
-        //const data = JSON.parse(message);
-
-
-
-        // Update the score with the new score calculated by the server
-        const scoreKey = `score/${activityNumber}`;
-        localStorage.setItem(scoreKey, data.score)
 
         // The result has necessarily a feedback part. Display it.
         feedbackTextContainer.innerHTML = data.feedback;
@@ -62,14 +54,12 @@ export async function getAndRenderFeedback(refresh = true) {
 
         // The feeback can be a hint.
         if (feedbackTextContainer.firstChild.classList.contains('hint')) {
-            stakeSystem.addToScore(data.scoreDelta);
+            stakeSystem.addToScore(data.score, data.scoreDelta);
             return;
         }
 
         // Otherwise, the answer was correct, and the feedback gives the official solution.
-        // const taskButton = window.taskStrip.getActiveButton();
-        // const reward = parseInt(taskButton.getAttribute('data-reward'));
-        stakeSystem.addToScore(data.scoreDelta);
+        stakeSystem.addToScore(data.score, data.scoreDelta);
 
         // Store the correction locally
         localStorage.setItem(`feedback/${taskId}`, data.feedback);
